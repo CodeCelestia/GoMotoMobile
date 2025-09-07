@@ -12,33 +12,22 @@ import {
   View
 } from 'react-native';
 
-/**
- * FiltersPanel
- * Props:
- *  - visible: boolean
- *  - initialVehicle: 'motorcycle' | 'car'
- *  - onClose: () => void
- *  - onApply: ({ vehicleType, category }) => void
- *
- * This component animates its height when visible changes.
- */
 export default function FiltersPanel({
   visible = false,
   initialVehicle = 'motorcycle',
   initialCategory = null,
   onClose = () => {},
   onApply = () => {},
+  onAnimationComplete = () => {},
+  headerHeight = 130,
 }) {
   const [vehicleType, setVehicleType] = useState(initialVehicle);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
-  const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+  const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
-  // animation: from height 0 to fullHeight
   const anim = useRef(new Animated.Value(0)).current;
-  // Reduced container height to remove extra bottom space
   const fullHeight = Platform.OS === 'web' ? 135 : 150;
 
-  // Custom motorcycle icons
   const motorcycleIcons = {
     scooter: require('../assets/images/motorcycle/Scooter.png'),
     underbone: require('../assets/images/motorcycle/Underbone.png'),
@@ -56,23 +45,23 @@ export default function FiltersPanel({
   };
 
   useEffect(() => {
-    // Create animation but store the reference
     const animationRef = Animated.timing(anim, {
       toValue: visible ? 1 : 0,
       duration: 220,
       useNativeDriver: false,
     });
     
-    // Start the animation
-    animationRef.start();
+    animationRef.start(({ finished }) => {
+      if (finished && !visible) {
+        onAnimationComplete();
+      }
+    });
     
-    // Return cleanup function to stop animation when component unmounts
     return () => {
       animationRef.stop();
     };
-  }, [visible, anim]);
+  }, [visible, anim, onAnimationComplete]);
 
-  // categories for each vehicle type
   const CATEGORIES = {
     motorcycle: [
       { key: 'scooter', label: 'Scooter', icon: 'scooter' },
@@ -90,31 +79,27 @@ export default function FiltersPanel({
     ],
   };
 
+  const currentCategories = CATEGORIES[vehicleType];
+  const totalButtons = currentCategories.length + 1;
+  const availableWidth = SCREEN_WIDTH - 32;
+  const buttonMargin = 3;
+  const totalMargins = (totalButtons - 1) * buttonMargin * 2;
+  const buttonWidth = Math.floor((availableWidth - totalMargins) / totalButtons);
+  const buttonHeight = Platform.OS === 'web' ? 53 : 55;
+
   const heightInterpolate = anim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, fullHeight],
   });
 
   const handleSelectCategory = (categoryKey) => {
-    Animated.timing(anim, { toValue: 0, duration: 220, useNativeDriver: false })
-      .start(({ finished }) => {
-        if (finished) {
-          setSelectedCategory(categoryKey);
-          onApply({ vehicleType, category: categoryKey });
-          onClose();
-        }
-      });
+    setSelectedCategory(categoryKey);
+    onApply({ vehicleType, category: categoryKey });
   };
 
   const handleResetCategory = () => {
-    Animated.timing(anim, { toValue: 0, duration: 220, useNativeDriver: false })
-      .start(({ finished }) => {
-        if (finished) {
-          setSelectedCategory(null);
-          onApply({ vehicleType, category: null });
-          onClose();
-        }
-      });
+    setSelectedCategory(null);
+    onApply({ vehicleType, category: null });
   };
 
   return (
@@ -122,7 +107,10 @@ export default function FiltersPanel({
       style={[
         styles.container,
         Platform.OS !== 'web' ? styles.mobileContainer : {},
-        { height: heightInterpolate }
+        { 
+          height: heightInterpolate,
+          top: Platform.OS === 'web' ? 'auto' : headerHeight
+        }
       ]}
       pointerEvents={visible ? 'auto' : 'none'}
     >
@@ -131,27 +119,26 @@ export default function FiltersPanel({
         <View style={styles.topRow}>
           <View style={styles.typeToggle}>
             <TouchableOpacity
-              style={[
-                styles.typeButton,
-                vehicleType === 'motorcycle' && styles.typeButtonActive,
-              ]}
+              style={[ styles.typeButton, vehicleType === 'motorcycle' && styles.typeButtonActive ]}
               onPress={() => setVehicleType('motorcycle')}
               activeOpacity={0.85}
             >
-              <Ionicons name="bicycle" size={18} color={vehicleType === 'motorcycle' ? '#fff' : '#cfd6db'} />
-              <Text style={[styles.typeLabel, vehicleType === 'motorcycle' && styles.typeLabelActive]}>Motorcycle</Text>
+              {/* WRAPPER to keep Ionicon and label together */}
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="bicycle" size={18} color={vehicleType === 'motorcycle' ? '#fff' : '#cfd6db'} />
+                <Text style={[styles.typeLabel, vehicleType === 'motorcycle' && styles.typeLabelActive]}>Motorcycle</Text>
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[
-                styles.typeButton,
-                vehicleType === 'car' && styles.typeButtonActive,
-              ]}
+              style={[ styles.typeButton, vehicleType === 'car' && styles.typeButtonActive ]}
               onPress={() => setVehicleType('car')}
               activeOpacity={0.85}
             >
-              <Ionicons name="car" size={18} color={vehicleType === 'car' ? '#fff' : '#cfd6db'} />
-              <Text style={[styles.typeLabel, vehicleType === 'car' && styles.typeLabelActive]}>Automobile</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="car" size={18} color={vehicleType === 'car' ? '#fff' : '#cfd6db'} />
+                <Text style={[styles.typeLabel, vehicleType === 'car' && styles.typeLabelActive]}>Automobile</Text>
+              </View>
             </TouchableOpacity>
           </View>
         </View>
@@ -172,42 +159,40 @@ export default function FiltersPanel({
                   onPress={() => handleSelectCategory(cat.key)}
                   activeOpacity={0.85}
                 >
-                  <View style={[styles.catIconWrap, active && styles.catIconWrapActive]}>
-                    {vehicleType === 'motorcycle' ? (
-                      <Image 
-                        source={motorcycleIcons[cat.icon]} 
-                        style={[
-                          styles.customIcon, 
-                          active && { tintColor: '#194b59' }
-                        ]} 
-                        resizeMode="contain" 
-                      />
-                    ) : (
-                      <Image 
-                        source={carIcons[cat.icon]} 
-                        style={[
-                          styles.customIcon, 
-                          active && { tintColor: '#194b59' }
-                        ]} 
-                        resizeMode="contain" 
-                      />
-                    )}
+                  <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                    <View style={[styles.catIconWrap, active && styles.catIconWrapActive]}>
+                      {vehicleType === 'motorcycle' ? (
+                        <Image 
+                          source={motorcycleIcons[cat.icon]} 
+                          style={[ styles.customIcon, active && { tintColor: '#194b59' } ]} 
+                          resizeMode="contain" 
+                        />
+                      ) : (
+                        <Image 
+                          source={carIcons[cat.icon]} 
+                          style={[ styles.customIcon, active && { tintColor: '#194b59' } ]} 
+                          resizeMode="contain" 
+                        />
+                      )}
+                    </View>
+                    <Text style={[styles.catLabel, active && styles.catLabelActive]}>{cat.label}</Text>
                   </View>
-                  <Text style={[styles.catLabel, active && styles.catLabelActive]}>{cat.label}</Text>
                 </TouchableOpacity>
               );
             })}
-            
+
             {/* Reset button */}
             <TouchableOpacity
-              style={[styles.catButton, styles.resetButton]}
+              style={[ styles.catButton, styles.resetButton ]}
               onPress={handleResetCategory}
               activeOpacity={0.85}
             >
-              <View style={styles.catIconWrap}>
-                <Ionicons name="refresh" size={24} color="#e74c3c" />
+              <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                <View style={styles.catIconWrap}>
+                  <Ionicons name="refresh" size={20} color="#e74c3c" />
+                </View>
+                <Text style={styles.resetLabel}>Reset</Text>
               </View>
-              <Text style={styles.resetLabel}>Reset</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -217,6 +202,7 @@ export default function FiltersPanel({
 }
 
 const styles = StyleSheet.create({
+  /* keep your styles unchanged except where needed */
   container: {
     width: '100%',
     overflow: 'hidden',
@@ -230,16 +216,9 @@ const styles = StyleSheet.create({
   },
   mobileContainer: {
     position: 'absolute',
-    // Position fixed to top regardless of scroll
-    top: 130,
     left: 0,
     right: 0,
     backgroundColor: 'transparent',
-  },
-  hiddenContainer: {
-    height: 0,
-    opacity: 0,
-    display: Platform.OS === 'web' ? 'flex' : 'none',
   },
   inner: {
     flex: 1,
@@ -249,108 +228,23 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     borderBottomLeftRadius: 22,
     borderBottomRightRadius: 22,
-    // Enhanced shadow for better visibility on mobile
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: { elevation: 10 },
-    }),
+    ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, }, android: { elevation: 10 }, }),
   },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Platform.OS === 'web' ? 2 : 10,
-  },
-  typeToggle: {
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'center',
-    marginTop: Platform.OS === 'web' ? 0 : 5,
-  },
-  typeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: Platform.OS === 'web' ? 6 : 8,
-    borderRadius: 16,
-  },
-  typeButtonActive: {
-    backgroundColor: '#194b59',
-  },
-  typeLabel: {
-    color: '#cfd6db',
-    marginLeft: 8,
-    fontSize: 14,
-  },
-  typeLabelActive: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  
-  categoriesWrap: {
-    paddingVertical: 0,
-  },
-  categoriesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: Platform.OS === 'web' ? 4 : 5,
-    paddingBottom: 0,
-  },
-  catButton: {
-    width: Platform.OS === 'web' ? 67 : 70,
-    height: Platform.OS === 'web' ? 53 : 55,
-    backgroundColor: '#e9eef1',
-    margin: Platform.OS === 'web' ? 3 : 3,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 0,
-  },
-  catButtonActive: {
-    backgroundColor: '#87b6b1ff',  // darker highlight, still light enough for text/icons
-  },
-  customIcon: {
-    width: 37,
-    height: 37,
-    tintColor: '#2b3440',
-  },
-  catIconWrap: {
-    width: 36,
-    height: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  catIconWrapActive: {
-    backgroundColor: 'transparent',
-  },
-  catLabel: {
-    color: '#2b3440',
-    fontSize: Platform.OS === 'web' ? 12 : 13,
-    textAlign: 'center',
-    fontWeight: '500',
-    marginTop: -2,
-  },
-  catLabelActive: {
-    color: '#1a3841ff',
-    fontWeight: '600',
-    fontSize: Platform.OS === 'web' ? 10 : 11,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  resetButton: {
-    backgroundColor: '#f8f9fa',
-  },
-  resetLabel: {
-    color: '#e74c3c',
-    fontSize: Platform.OS === 'web' ? 12 : 13,
-    textAlign: 'center',
-    fontWeight: '600',
-    marginTop: -2,
-  },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: Platform.OS === 'web' ? 2 : 10, },
+  typeToggle: { flexDirection: 'row', gap: 8, justifyContent: 'center', marginTop: Platform.OS === 'web' ? 0 : 5, },
+  typeButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: Platform.OS === 'web' ? 6 : 8, borderRadius: 16, },
+  typeButtonActive: { backgroundColor: '#194b59', },
+  typeLabel: { color: '#cfd6db', marginLeft: 8, fontSize: 14, },
+  typeLabelActive: { color: '#fff', fontWeight: '600', },
+  categoriesWrap: { paddingVertical: 0, },
+  categoriesRow: { flexDirection: 'row', flexWrap: 'nowrap', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 0, paddingBottom: 0, },
+  catButton: { backgroundColor: '#e9eef1', margin: Platform.OS === 'web' ? 2 : 2, borderRadius: 13, alignItems: 'center', justifyContent: 'center', padding: 0, flex: 1, maxWidth: 85, minWidth: 50, minHeight: Platform.OS === 'web' ? 53 : 55, },
+  catButtonActive: { backgroundColor: '#87b6b1ff', },
+  customIcon: { width: 32, height: 32, tintColor: '#2b3440', },
+  catIconWrap: { width: 36, height: 26, alignItems: 'center', justifyContent: 'center', },
+  catIconWrapActive: { backgroundColor: 'transparent', },
+  catLabel: { color: '#2b3440', fontSize: Platform.OS === 'web' ? 10 : 11, textAlign: 'center', fontWeight: '500', marginTop: -2, },
+  catLabelActive: { color: '#1a3841ff', fontWeight: '600', fontSize: Platform.OS === 'web' ? 9 : 10, textAlign: 'center', marginTop: 2, },
+  resetButton: { backgroundColor: '#f8f9fa', },
+  resetLabel: { color: '#e74c3c', fontSize: Platform.OS === 'web' ? 10 : 11, textAlign: 'center', fontWeight: '600', marginTop: -2, },
 });

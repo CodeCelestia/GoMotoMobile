@@ -10,42 +10,30 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const NAV_HEIGHT = 72;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function BottomNavbar() {
   const router = useRouter();
-  const pathname = usePathname() || '/home';
+  const pathname = usePathname() || '/';
   const bounce = useRef(new Animated.Value(1)).current;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    // Create animation sequence and store the reference
     const animationSequence = Animated.sequence([
-      Animated.timing(bounce, { 
-        toValue: 1.12, 
-        duration: 140, 
-        useNativeDriver: true 
-      }),
-      Animated.timing(bounce, { 
-        toValue: 1.0, 
-        duration: 160, 
-        useNativeDriver: true 
-      }),
+      Animated.timing(bounce, { toValue: 1.12, duration: 140, useNativeDriver: true }),
+      Animated.timing(bounce, { toValue: 1.0, duration: 160, useNativeDriver: true }),
     ]);
-    
-    // Start the animation
     animationSequence.start();
-    
-    // Return cleanup function to stop animation when component unmounts
-    // or when pathname changes (triggering a re-run of this effect)
     return () => {
       animationSequence.stop();
     };
   }, [pathname, bounce]);
 
   const tabs = [
-    { route: '/home', label: 'Home', icon: 'home' },
+    { route: '/', label: 'Home', icon: 'home' },
     { route: '/current', label: 'Current', icon: 'location' },
     { route: '/settings', label: 'Settings', icon: 'settings' },
   ];
@@ -53,7 +41,7 @@ export default function BottomNavbar() {
   const handlePress = (route) => router.push(route);
 
   return (
-    <View style={styles.navWrapper}>
+    <View style={[styles.navWrapper, { paddingBottom: insets.bottom + 16 }]}>
       <View style={styles.container}>
         <View style={styles.background} />
 
@@ -69,23 +57,22 @@ export default function BottomNavbar() {
                 onPress={() => handlePress(t.route)}
                 style={styles.tab}
               >
-                <Animated.View
-                  style={[
-                    styles.iconWrap,
-                    active && styles.iconWrapActive,
-                    active && { transform: [{ translateY: -14 }, { scale: bounce }] },
-                  ]}
-                >
-                  <Ionicons
-                    name={iconName}
-                    size={22}
-                    color={active ? '#ffffff' : '#c9d1d9'}
-                  />
-                </Animated.View>
+                {/* WRAPPER so animated icon and label are grouped without raw text leakage */}
+                <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                  <Animated.View
+                    style={[
+                      styles.iconWrap,
+                      active && styles.iconWrapActive,
+                      active && { transform: [{ translateY: -14 }, { scale: bounce }] },
+                    ]}
+                  >
+                    <Ionicons name={iconName} size={22} color={active ? '#ffffff' : '#c9d1d9'} />
+                  </Animated.View>
 
-                <Text style={[styles.label, { color: active ? '#ffffff' : '#c9d1d9' }]}>
-                  {t.label}
-                </Text>
+                  <Text style={[styles.label, { color: active ? '#ffffff' : '#c9d1d9' }]}>
+                    {String(t.label)}
+                  </Text>
+                </View>
               </TouchableOpacity>
             );
           })}
@@ -98,14 +85,15 @@ export default function BottomNavbar() {
 const styles = StyleSheet.create({
   navWrapper: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 30 : 16,
+    bottom: 0,
     left: 0,
     right: 0,
     alignItems: 'center',
     zIndex: 1,
+    paddingBottom: Platform.select({ ios: 0, android: 16 }),
   },
   container: {
-    width: SCREEN_WIDTH - 32, // 16px padding on each side
+    width: SCREEN_WIDTH - 32,
     height: NAV_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
@@ -132,29 +120,8 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     paddingHorizontal: 6,
   },
-  tab: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 88,
-  },
-  iconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  iconWrapActive: {
-    backgroundColor: '#949494ff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.28,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  tab: { alignItems: 'center', justifyContent: 'center', width: 88, },
+  iconWrap: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent', },
+  iconWrapActive: { backgroundColor: '#949494ff', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.28, shadowRadius: 12, elevation: 10, },
+  label: { fontSize: 12, fontWeight: '500' },
 });

@@ -1,15 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
-    Image,
-    Platform,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Image,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FiltersPanel from './FiltersPanel';
 
 export default function HomeSearchHeader({
@@ -23,37 +24,61 @@ export default function HomeSearchHeader({
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState('motorcycle');
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const insets = useSafeAreaInsets();
+
+  const safeUsername = username || 'Username';
+  const safePlaceholder = placeholder || 'Search for Vehicle...';
+  const safeSelectedCategory = selectedCategory ? String(selectedCategory) : null;
 
   const submit = () => {
-    if (onSearch) onSearch({ q: query, vehicleType: selectedVehicle, category: selectedCategory });
+    if (onSearch) onSearch({ 
+      q: query || '', 
+      vehicleType: selectedVehicle || 'motorcycle', 
+      category: selectedCategory || null 
+    });
   };
 
   const handleApplyFilters = ({ vehicleType, category }) => {
-    setSelectedVehicle(vehicleType);
-    setSelectedCategory(category);
+    setSelectedVehicle(vehicleType || 'motorcycle');
+    setSelectedCategory(category || null);
+    setIsAnimating(true);
     setFiltersVisible(false);
-    // optionally trigger a search/update
-    if (onSearch) onSearch({ q: query, vehicleType, category });
+    if (onSearch) onSearch({ q: query, vehicleType: vehicleType || 'motorcycle', category: category || null });
+  };
+
+  const handleCloseFilters = () => {
+    setIsAnimating(true);
+    setFiltersVisible(false);
+  };
+
+  const handleAnimationComplete = () => {
+    setIsAnimating(false);
+    setFiltersVisible(false);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={[styles.header, { 
-        borderBottomLeftRadius: filtersVisible ? 0 : bottomRadius, 
-        borderBottomRightRadius: filtersVisible ? 0 : bottomRadius,
+        borderBottomLeftRadius: (filtersVisible || isAnimating) ? 0 : bottomRadius, 
+        borderBottomRightRadius: (filtersVisible || isAnimating) ? 0 : bottomRadius,
         zIndex: 999,
+        paddingTop: 12 + insets.top,
       }]}>
         {/* Top row: logo + profile pill */}
         <View style={styles.topRow}>
           <Image source={logo} style={styles.logo} resizeMode="contain" />
 
           <TouchableOpacity activeOpacity={0.85} style={styles.profilePill}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={22} color="#194b59" />
+            {/* WRAPPER: make sure no raw text sits directly inside TouchableOpacity */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={styles.avatar}>
+                <Ionicons name="person" size={22} color="#194b59" />
+              </View>
+              <Text numberOfLines={1} style={styles.usernameText}>
+                {String(safeUsername)}
+              </Text>
             </View>
-            <Text numberOfLines={1} style={styles.usernameText}>
-              {username}
-            </Text>
           </TouchableOpacity>
         </View>
 
@@ -63,9 +88,9 @@ export default function HomeSearchHeader({
             <Ionicons name="search" size={20} color="#6b6f74" style={styles.searchIcon} />
             <TextInput
               style={styles.input}
-              placeholder={selectedCategory ? `${selectedCategory} • ${placeholder}` : placeholder}
+              placeholder={safeSelectedCategory ? `${safeSelectedCategory} • ${safePlaceholder}` : safePlaceholder}
               placeholderTextColor="#8b9096"
-              value={query}
+              value={query || ''}
               onChangeText={setQuery}
               returnKeyType="search"
               onSubmitEditing={submit}
@@ -76,9 +101,19 @@ export default function HomeSearchHeader({
           <TouchableOpacity
             activeOpacity={0.85}
             style={styles.filterButton}
-            onPress={() => setFiltersVisible(!filtersVisible)}
+            onPress={() => {
+              if (filtersVisible) {
+                handleCloseFilters();
+              } else {
+                setFiltersVisible(true);
+                setIsAnimating(false);
+              }
+            }}
           >
-            <Ionicons name="options" size={20} color="#2b3440" />
+            {/* WRAPPER to avoid raw text issues from icon rendering */}
+            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="options" size={20} color="#2b3440" />
+            </View>
           </TouchableOpacity>
         </View>
       </View>
@@ -88,20 +123,22 @@ export default function HomeSearchHeader({
         visible={filtersVisible}
         initialVehicle={selectedVehicle}
         initialCategory={selectedCategory}
-        onClose={() => setFiltersVisible(false)}
+        onClose={handleCloseFilters}
         onApply={handleApplyFilters}
+        onAnimationComplete={handleAnimationComplete}
+        headerHeight={12 + insets.top + 56 + 12 + 46 + 25}
       />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  /* ... keep your existing styles unchanged ... */
   safeArea: {
     width: '100%',
     backgroundColor: 'transparent',
-    zIndex: 10, // Ensure header is above content but below navbar
+    zIndex: 10,
   },
-
   header: {
     width: '100%',
     backgroundColor: '#27313a',
@@ -113,7 +150,6 @@ const styles = StyleSheet.create({
     shadowColor: 'transparent',
     elevation: 0,
   },
-
   topRow: {
     width: '100%',
     flexDirection: 'row',
@@ -121,12 +157,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-
-  logo: {
-    width: 220,
-    height: 56,
-  },
-
+  logo: { width: 220, height: 56 },
   profilePill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -142,75 +173,14 @@ const styles = StyleSheet.create({
     minWidth: 120,
     justifyContent: 'center',
   },
-
   avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 21,
-    backgroundColor: '#dff1f4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
+    width: 36, height: 36, borderRadius: 21, backgroundColor: '#dff1f4',
+    alignItems: 'center', justifyContent: 'center', marginRight: 10,
   },
-
-  usernameText: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontWeight: '500',
-  },
-
-  searchRow: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  searchBox: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    height: 46,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    marginRight: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 6,
-      },
-      android: { elevation: 3 },
-    }),
-  },
-
-  searchIcon: {
-    marginRight: 8,
-  },
-
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1a1a1a',
-    paddingVertical: 0,
-  },
-
-  filterButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 6,
-      },
-      android: { elevation: 3 },
-    }),
-  },
+  usernameText: { color: '#ffffff', fontSize: 20, fontWeight: '500' },
+  searchRow: { width: '100%', flexDirection: 'row', alignItems: 'center' },
+  searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', height: 46, borderRadius: 12, paddingHorizontal: 14, marginRight: 12, ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 6 }, android: { elevation: 3 }, }), },
+  searchIcon: { marginRight: 8, },
+  input: { flex: 1, fontSize: 16, color: '#1a1a1a', paddingVertical: 0, },
+  filterButton: { width: 46, height: 46, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 6, }, android: { elevation: 3 }, }), },
 });
