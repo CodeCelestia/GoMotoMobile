@@ -1,147 +1,68 @@
 // app/index.jsx
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import FloatingCard from '../components/FloatingCard';
-import HomeSearchHeader from '../components/HomeSearchHeader';
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import FindRide from '../components/FindRide';
+import HeaderCenter from '../components/HeaderCenter';
 
-export default function Home() {
+export default function Landing() {
   const router = useRouter();
 
-  const handleCardPress = (vehicle) => {
-    router.push({
-      pathname: '/vehicledetails',
-      params: { data: JSON.stringify(vehicle) }, // 🔹 pass JSON string
-    });
-  };
-
   return (
-    <View style={styles.container}>
-      <HomeSearchHeader
-        username="John Doe"
-        onSearch={({ q, vehicleType, category }) =>
-          console.log('search:', { q, vehicleType, category })
-        }
-      />
+    <SafeAreaView style={styles.safe}>
+      <HeaderCenter bottomRadius={36} />
 
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.headerSection}>
-          <Text style={styles.sectionTitle}>Vehicles Available</Text>
-        </View>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.heroTitle}>Your Perfect{'\n'}Ride Awaits</Text>
+        <Text style={styles.heroSubtitle}>
+          Discover premium vehicles for every journey. Safe, reliable, and professionally maintained.
+        </Text>
 
-        {/* Example Floating Cards */}
-        <FloatingCard
-          title="Honda XRM125 DSX"
-          owner="Juan Dela Cruz"
-          color="Black"
-          gearbox="4-speed"
-          fuel="Unleaded"
-          category="Underbones"
-          price={350}
-          rating={4.5}
-          durationLabel="Price for 12 hours"
-          onPress={() =>
-            handleCardPress({
-              title: 'Honda XRM125 DSX',
-              year: '2024',
-              image: null,
-              location: 'Surigao City, Philippines',
-              description: 'Reliable underbone bike for daily commute.',
-              details: {
-                category: 'Underbones',
-                make: 'Honda',
-                model: 'XRM125 DSX',
-                subtype: 'Underbone',
-                year: '2024',
-                fuelType: 'Unleaded',
-                transmission: '4-speed',
-                color: 'Black',
-                licensePlate: 'ABC-123',
-                pricePerHour: 350,
-              },
-              owner: {
-                name: 'Juan Dela Cruz',
-                verified: true,
-                lastActive: 'Active now',
-                memberSince: 'Member since Jan 2023',
-                totalRatings: 10,
-                averageRating: 4.5,
-                vehiclesListed: 2,
-              },
-            })
-          }
-        />
-
-        <FloatingCard
-          title="Honda Pridor"
-          owner="Pedro Santos"
-          color="Red"
-          gearbox="4-speed"
-          fuel="Unleaded"
-          category="Underbones"
-          price={350}
-          rating={3.8}
-          durationLabel="Price for 12 hours"
-          image={{
-            uri: 'https://bike.net/res/media/img/oy800/ref/9c0/87747.png',
+        {/* Reusable find-ride component */}
+        <FindRide
+          onSearch={(q) => {
+            // if you want to pass the search query to the /home page later,
+            // you can push params like: router.push({ pathname: '/home', params: { q } })
+            console.log('search pressed:', q);
+            router.push('/home');
           }}
-          onPress={() =>
-            handleCardPress({
-              title: 'Honda Pridor',
-              year: '2023',
-              image: {
-                uri: 'https://bike.net/res/media/img/oy800/ref/9c0/87747.png',
-              },
-              location: 'Surigao City, Philippines',
-              description: 'Lightweight and efficient commuter bike.',
-              details: {
-                category: 'Underbones',
-                make: 'Honda',
-                model: 'Pridor',
-                subtype: 'Underbone',
-                year: '2023',
-                fuelType: 'Unleaded',
-                transmission: '4-speed',
-                color: 'Red',
-                licensePlate: 'XYZ-456',
-                pricePerHour: 350,
-              },
-              owner: {
-                name: 'Pedro Santos',
-                verified: false,
-                lastActive: 'Active yesterday',
-                memberSince: 'Member since Mar 2022',
-                totalRatings: 5,
-                averageRating: 3.8,
-                vehiclesListed: 1,
-              },
-            })
-          }
+          onExplore={() => router.push('/home')}
+          onBecomePartner={() => router.push('/signup')}
         />
 
-        <View style={styles.bottomPadding} />
+        <View style={{ height: 80 }} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f1720' },
-  content: { flex: 1 },
-  contentContainer: { flexGrow: 1, paddingTop: 14, paddingBottom: 40 },
-  headerSection: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 8,
+  safe: { flex: 1, backgroundColor: '#0f1720' },
+  container: {
+    paddingHorizontal: 28,
+    paddingTop: 28,
     alignItems: 'center',
   },
-  sectionTitle: {
-    fontSize: 26,
-    fontWeight: '800',
+
+  heroTitle: {
+    fontSize: 44,
+    fontWeight: '900',
     color: '#ffffff',
+    textAlign: 'center',
+    marginTop: 18,
+    lineHeight: 48,
   },
-  bottomPadding: { height: 120 },
+  heroSubtitle: {
+    fontSize: 16,
+    color: '#cbd5e1',
+    textAlign: 'center',
+    marginTop: 12,
+    marginBottom: 24,
+    maxWidth: 880,
+  },
 });

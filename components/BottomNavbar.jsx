@@ -33,7 +33,7 @@ export default function BottomNavbar() {
   }, [pathname, bounce]);
 
   const tabs = [
-    { route: '/', label: 'Home', icon: 'home' },
+    { route: '/home', label: 'Home', icon: 'home' },
     { route: '/report', label: 'Report ', icon: 'clipboard' },
     { route: '/saved', label: 'Saved', icon: 'heart' },
     { route: '/current', label: 'Current', icon: 'location' },

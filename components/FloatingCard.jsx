@@ -1,5 +1,5 @@
-// components/FloatingCard.jsx
 import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 import { Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function FloatingCard({
@@ -14,11 +14,25 @@ export default function FloatingCard({
   image = null,
   onPress = () => {},
 }) {
+  const [liked, setLiked] = useState(false);
   const priceLabel = `₱${price} /hours`;
 
   return (
     <View style={styles.wrapper}>
       <View style={styles.card}>
+        {/* Heart Button (top-left overlay) */}
+        <TouchableOpacity
+          style={styles.heartButton}
+          onPress={() => setLiked(!liked)}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name={liked ? "heart" : "heart-outline"}
+            size={22}
+            color={liked ? "red" : "#ccc"}
+          />
+        </TouchableOpacity>
+
         {/* Left: image / placeholder */}
         <View style={styles.left}>
           {image ? (
@@ -36,7 +50,7 @@ export default function FloatingCard({
             {title}
           </Text>
 
-          {/* 🔹 Owner with user icon */}
+          {/* Owner with user icon */}
           <View style={styles.ownerWrap}>
             <Ionicons name="person-circle" size={16} color="#d1d5db" />
             <Text style={styles.owner}>{owner}</Text>
@@ -107,6 +121,18 @@ const styles = StyleSheet.create({
       },
     }),
     alignItems: 'center',
+    position: 'relative',
+  },
+
+  /* ❤️ Heart button positioned top-left */
+  heartButton: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    zIndex: 2,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 20,
+    padding: 6,
   },
 
   left: {
@@ -137,12 +163,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: '#fff',
-    marginBottom: 6, // 🔹 extra spacing under title
+    marginBottom: 6,
   },
   ownerWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14, // 🔹 more spacing before features
+    marginBottom: 14,
     gap: 6,
   },
   owner: {
@@ -189,7 +215,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#4ade80', // 🔹 green price
+    color: '#4ade80',
     marginVertical: 8,
   },
 

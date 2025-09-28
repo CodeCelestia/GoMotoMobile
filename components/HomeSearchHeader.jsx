@@ -1,17 +1,19 @@
+// components/HomeSearchHeader.jsx
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router'; // ✅ import router
 import { useState } from 'react';
 import {
   Image,
   Platform,
   SafeAreaView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FiltersPanel from './FiltersPanel';
+import ProfilePill from './ProfilePill';
 
 export default function HomeSearchHeader({
   username = 'Username',
@@ -26,17 +28,19 @@ export default function HomeSearchHeader({
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const insets = useSafeAreaInsets();
+  const router = useRouter();  // ✅ navigation
 
   const safeUsername = username || 'Username';
   const safePlaceholder = placeholder || 'Search for Vehicle...';
   const safeSelectedCategory = selectedCategory ? String(selectedCategory) : null;
 
   const submit = () => {
-    if (onSearch) onSearch({ 
-      q: query || '', 
-      vehicleType: selectedVehicle || 'motorcycle', 
-      category: selectedCategory || null 
-    });
+    if (onSearch)
+      onSearch({
+        q: query || '',
+        vehicleType: selectedVehicle || 'motorcycle',
+        category: selectedCategory || null,
+      });
   };
 
   const handleApplyFilters = ({ vehicleType, category }) => {
@@ -44,7 +48,12 @@ export default function HomeSearchHeader({
     setSelectedCategory(category || null);
     setIsAnimating(true);
     setFiltersVisible(false);
-    if (onSearch) onSearch({ q: query, vehicleType: vehicleType || 'motorcycle', category: category || null });
+    if (onSearch)
+      onSearch({
+        q: query,
+        vehicleType: vehicleType || 'motorcycle',
+        category: category || null,
+      });
   };
 
   const handleCloseFilters = () => {
@@ -59,36 +68,44 @@ export default function HomeSearchHeader({
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={[styles.header, { 
-        borderBottomLeftRadius: (filtersVisible || isAnimating) ? 0 : bottomRadius, 
-        borderBottomRightRadius: (filtersVisible || isAnimating) ? 0 : bottomRadius,
-        zIndex: 999,
-        paddingTop: 12 + insets.top,
-      }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            borderBottomLeftRadius:
+              filtersVisible || isAnimating ? 0 : bottomRadius,
+            borderBottomRightRadius:
+              filtersVisible || isAnimating ? 0 : bottomRadius,
+            zIndex: 999,
+            paddingTop: 12 + insets.top,
+          },
+        ]}
+      >
         {/* Top row: logo + profile pill */}
         <View style={styles.topRow}>
           <Image source={logo} style={styles.logo} resizeMode="contain" />
-
-          <TouchableOpacity activeOpacity={0.85} style={styles.profilePill}>
-            {/* WRAPPER: make sure no raw text sits directly inside TouchableOpacity */}
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={styles.avatar}>
-                <Ionicons name="person" size={22} color="#194b59" />
-              </View>
-              <Text numberOfLines={1} style={styles.usernameText}>
-                {String(safeUsername)}
-              </Text>
-            </View>
-          </TouchableOpacity>
+          <ProfilePill
+            username={safeUsername}
+            onPress={() => router.push('/profile')}   // ✅ go to profile page
+          />
         </View>
 
         {/* Search row */}
         <View style={styles.searchRow}>
           <View style={styles.searchBox}>
-            <Ionicons name="search" size={20} color="#6b6f74" style={styles.searchIcon} />
+            <Ionicons
+              name="search"
+              size={20}
+              color="#6b6f74"
+              style={styles.searchIcon}
+            />
             <TextInput
               style={styles.input}
-              placeholder={safeSelectedCategory ? `${safeSelectedCategory} • ${safePlaceholder}` : safePlaceholder}
+              placeholder={
+                safeSelectedCategory
+                  ? `${safeSelectedCategory} • ${safePlaceholder}`
+                  : safePlaceholder
+              }
               placeholderTextColor="#8b9096"
               value={query || ''}
               onChangeText={setQuery}
@@ -110,7 +127,6 @@ export default function HomeSearchHeader({
               }
             }}
           >
-            {/* WRAPPER to avoid raw text issues from icon rendering */}
             <View style={{ alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="options" size={20} color="#2b3440" />
             </View>
@@ -133,7 +149,6 @@ export default function HomeSearchHeader({
 }
 
 const styles = StyleSheet.create({
-  /* ... keep your existing styles unchanged ... */
   safeArea: {
     width: '100%',
     backgroundColor: 'transparent',
@@ -158,29 +173,43 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   logo: { width: 220, height: 56 },
-  profilePill: {
+  searchRow: { width: '100%', flexDirection: 'row', alignItems: 'center' },
+  searchBox: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1f2730',
-    paddingVertical: 6,
+    backgroundColor: '#fff',
+    height: 46,
+    borderRadius: 12,
     paddingHorizontal: 14,
-    borderRadius: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
-    minWidth: 120,
+    marginRight: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 6,
+      },
+      android: { elevation: 3 },
+    }),
+  },
+  searchIcon: { marginRight: 8 },
+  input: { flex: 1, fontSize: 16, color: '#1a1a1a', paddingVertical: 0 },
+  filterButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    alignItems: 'center',
     justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 6,
+      },
+      android: { elevation: 3 },
+    }),
   },
-  avatar: {
-    width: 36, height: 36, borderRadius: 21, backgroundColor: '#dff1f4',
-    alignItems: 'center', justifyContent: 'center', marginRight: 10,
-  },
-  usernameText: { color: '#ffffff', fontSize: 20, fontWeight: '500' },
-  searchRow: { width: '100%', flexDirection: 'row', alignItems: 'center' },
-  searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', height: 46, borderRadius: 12, paddingHorizontal: 14, marginRight: 12, ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 6 }, android: { elevation: 3 }, }), },
-  searchIcon: { marginRight: 8, },
-  input: { flex: 1, fontSize: 16, color: '#1a1a1a', paddingVertical: 0, },
-  filterButton: { width: 46, height: 46, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 6, }, android: { elevation: 3 }, }), },
 });
